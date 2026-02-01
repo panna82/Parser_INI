@@ -1,0 +1,237 @@
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <string>
+
+class Ini {
+
+private:
+    std::string removeedgespaces(std::string str)
+    {
+        size_t strBegin;
+        size_t strEnd;
+        strBegin = str.find_first_not_of(' ');
+        strEnd = str.find_last_not_of(' ');
+        str.erase(strEnd + 1, str.size() - strEnd);
+        str.erase(0, strBegin);
+        return str;
+    }
+
+    std::string substr(std::string str, int start, int end)
+    {
+        std::string tmp="";
+        if ((start > str.size()) or (end > str.size())) return "error substr";
+        for (int i = start; i < end; i++)
+        {
+            tmp=tmp+str[i];
+        }
+        return tmp;
+    }
+
+public:
+    int linecounter = 0; //число строк в файле и в массиве
+    
+    std::vector<std::string> lines;
+
+    void start(std::string filename) //открываем файл и читаем в массив содержимое
+    {
+        std::string v;
+        std::ifstream ifs(filename);
+        std::string g2;
+        int it2;
+
+
+        if (!ifs.is_open())
+        {
+            std::cout << "fileerror"<<std::endl;
+            //тут будет исключение при ошибке с файлом
+            
+        }
+        while (std::getline(ifs, v))
+        {
+            if (std::size(v) > 2) //меньше двух символов в строке не берем
+            {
+                //отрезаем всё после точки с запятой
+                it2 = v.find_first_of(';', 0);
+                if (it2>0) g2.resize(it2);
+                if (it2 > 0)
+                {
+
+                    //std::string g2(it2, '\0');
+                    std::copy(v.begin(), v.begin() + v.find_first_of(';'), g2.begin());
+                   // std::cout << "отрезаем точку с запятой: !" << g2 << "!" << std::endl;
+
+                }
+                else g2 = v;
+
+                //убираем пробелы в начале и в конце
+                g2 = removeedgespaces(g2);
+                //std::cout << "убираем пробелы: !" << g2 << "!" << std::endl;
+                    if (std::size(g2) > 2) //если осталось что-то годное, добавляем в список
+                    {
+                        lines.push_back(g2);
+                        linecounter++;
+                    }
+                
+            }
+        }
+        
+        ifs.close();
+    }//void start
+
+    std::string get(std::string section, std::string variable)
+    {
+        section = "[" + section + "]";
+        std::string answer="ошибка поиска";
+        
+        //мотаем до нужной секции конфигурации
+        int i=0;
+        bool tmpflag = true;
+        while (tmpflag)
+        {
+/*          //старая 
+            auto it1 = lines[i].find_first_of('[') + 1;
+            auto it2 = lines[i].find_first_of(']', it1);
+            std::string tmpstr(it2 - it1, '\0');
+            std::copy(lines[i].begin() + it1, lines[i].begin() + it2, tmpstr.begin());
+            return tmpstr;
+*/
+            if (section == lines[i]) tmpflag = false;
+            if (i>=linecounter-1) tmpflag = false;
+            i++;
+            }//while поиск секции
+
+        if (i >= linecounter-1)
+        {
+            //выводим исключение об отсутсвии секции
+            printall();
+            return "секция не найдена";
+        }
+
+        //нашли секцию, теперь ищем переменную
+        tmpflag = true;
+        std::string g2;
+        int it2;
+        while (tmpflag)
+        {
+
+            it2 = lines[i].find_first_of('=', 0);
+            if (it2 > 0) g2.resize(it2);
+            if (it2 > 0)
+            {
+                //std::copy(lines[i].begin(), lines[i].begin() + lines[i].find_first_of('='), g2.begin());
+                g2 = substr(lines[i], 0, it2);
+              //  std::cout << "нашли параметр: !" << g2 << "!" << std::endl;
+            }
+            if (g2 == variable) //нашли параметр
+            {
+                it2 = lines[i].find_last_of('=', size(lines[i]));
+             //   std::cout << "!!!!!!!!!!!!!! it2=" << it2 << "!!!!!!!!";
+                if (it2 > 0) g2.resize(it2);
+                if (it2 > 0)
+                {
+                    //std::copy(lines[i].begin()+it2, lines[i].begin()+ lines[i].size()-2, g2.begin());
+                    g2 = substr(lines[i], it2+1, lines[i].size());
+                    //std::cout << "!!" << g2 << "!!";
+                    return removeedgespaces(g2);
+                    tmpflag = false;
+
+                }
+            }
+
+
+            if ((lines[i][0] == '[') or (i>=linecounter-1)) //началась другая секция либо закончился список 
+            {
+                //здесь будет исключение для отсутствующего параметра
+                tmpflag = false;
+                printall();
+                return "параметр не найден";
+            }
+
+            i++;
+        }//while поиск переменной
+
+
+
+        return answer;
+    }//get
+
+    void printall()
+    {
+        std::cout << "==============" << std::endl;
+        for (int i = 0; i < linecounter; i++)
+        {
+            std::cout << lines[i] << std::endl;
+
+        }
+    }//printall
+
+
+}; //ini
+
+
+
+
+int main()
+{
+    setlocale(LC_ALL, "Russian");
+
+    Ini myconf; //создаем объект
+    myconf.start("config.ini");
+    std::cout << "type exit if enough\n";
+    std::string a="a",b="b";
+    while (true)
+    {
+        std::cout << "Секция: ";
+        std::cin >> a;
+        if (a == "exit") break;
+        std::cout << "Параметр: ";
+        std::cin >> b;
+        if (b == "exit") break;
+        //std::cout << myconf.get("Position", "height") << std::endl;
+        std::cout << myconf.get(a, b) << std::endl;
+    }
+ 
+   
+    /*
+
+    std::string g;
+    g = "          [dfgd fgdfg]     ;dfgdfgdfg            ";
+
+    
+           //отрезаем всё после точки с запятой
+    //auto 
+      
+        it2 = g.find_first_of(';', 0);
+        size_t strBegin;
+        size_t strEnd;
+
+        g2.resize(it2);
+        std::copy(g.begin(), g.begin() + g.find_first_of(';'), g2.begin());
+        std::cout << "отрезаем точку с запятой: !" << g2 << "!" << std::endl;
+
+        //убираем пробелы в начале и в конце
+        strBegin = g2.find_first_not_of(' ');
+        strEnd = g2.find_last_not_of(' ');
+        g2.erase(strEnd + 1, g2.size() - strEnd);
+        g2.erase(0, strBegin);
+        std::cout << "убираем пробелы: !" << g2 << "!" << std::endl;
+
+       
+        g = "          [dfgd fgdfddfg]     ;dfgdfgdfg            ";
+
+        it2 = g.find_first_of(';', 0);
+
+        g2.resize(it2);
+        std::copy(g.begin(), g.begin() + g.find_first_of(';'), g2.begin());
+        std::cout << "отрезаем точку с запятой: !" << g2 << "!" << std::endl;
+
+        //убираем пробелы в начале и в конце
+        strBegin = g2.find_first_not_of(' ');
+        strEnd = g2.find_last_not_of(' ');
+        g2.erase(strEnd + 1, g2.size() - strEnd);
+        g2.erase(0, strBegin);
+        std::cout << "убираем пробелы: !" << g2 << "!" << std::endl;
+        */
+
+}
