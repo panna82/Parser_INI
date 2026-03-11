@@ -7,6 +7,8 @@
 class Ini {
 
 private:
+    std::vector<std::string> lines;
+
     std::string removeedgespaces(std::string str)
     {
         size_t strBegin;
@@ -32,7 +34,7 @@ private:
 public:
     int linecounter = 0; //число строк в файле и в массиве
 
-    std::vector<std::string> lines;
+ 
 
     void start(std::string filename) //открываем файл и читаем в массив содержимое
     {
@@ -89,10 +91,12 @@ public:
     }//void start
 
 
-
-std::string  get(std::string section, std::string variable)
+private:
+ 
+std::string get(std::string section, std::string variable)
     {
         section = "[" + section + "]";
+        
         std::string answer ;
         std::string g2;
         int it2;
@@ -151,25 +155,49 @@ std::string  get(std::string section, std::string variable)
             i++;
         }//while поиск секции
 
+        //конвертируем
 
-        if (!foundsection) std::cout<< "секция не найдена. ";
-        if (!foundvariable) std::cout << "параметр не найден. ";
 
+        
         return answer;
     }//get
 
-    void printall()
-    {
-        std::cout << "==============" << std::endl;
-        for (int i = 0; i < linecounter; i++)
-        {
-            std::cout << lines[i] << std::endl;
 
-        }
-    }//printall
+public:
+template<typename T>
+T get_value(const std::string& section, const std::string& variable) 
+{ 
+    static_assert(sizeof(T) == -1, "not implemented type for get_value"); 
+} 
+
+};
+
+//для стринга
+template<>
+std::string Ini::get_value(const std::string& section, const std::string& variable) {
+    return get(section, variable);
+}
+//для инта
+template<>
+int Ini::get_value(const std::string& section, const std::string& variable) 
+{
+    std::string s;
+    s=get(section, variable);
+    return std::stoi(s);
+}
+//для дабла
+template<>
+double Ini::get_value(const std::string& section, const std::string& variable) 
+{
+    std::string s;
+    s = get(section, variable);
+    return std::stod(s);
+}
 
 
-}; //ini
+    
+
+
 
 
 
@@ -180,18 +208,12 @@ int main()
 
     Ini myconf; //создаем объект
     myconf.start("config.ini");
-    std::cout << "type exit if enough\n";
-    std::string a = "a", b = "b";
-    while (true)
-    {
-        std::cout << "Секция: ";
-        std::cin >> a;
-        if (a == "exit") break;
-        std::cout << "Параметр: ";
-        std::cin >> b;
-        if (b == "exit") break;
-        std::cout << myconf.get(a, b) << std::endl;
-    }
+
+
+    std::cout << "str: " << myconf.get_value<std::string>("General", "language") << std::endl;
+    std::cout << "int: "<< myconf.get_value<int>("Position", "x") << std::endl;
+    std::cout << "double: "<< myconf.get_value<double>("General", "some") << std::endl;
+
 
 
 }
